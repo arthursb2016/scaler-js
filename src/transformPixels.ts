@@ -1,5 +1,5 @@
 import { TransformPixelsOptions } from './types'
-import { htmlTagBaseFontSize, ignoreResponsiveAppClass, browserFontSizeDiffVarName } from './constants'
+import { htmlTagBaseFontSize, bypassScalerTransformationClassName, browserFontSizeDiffVarName } from './constants'
 
 const pxToRemRegExp = /(\d+)px/g
 const cssSelectorRegExp = /([^{]+?)\s*\{([^}]+?)\}/g
@@ -48,7 +48,7 @@ export default (options: TransformPixelsOptions, code: string) => {
 
   if (cssMap.size > 0) {
     cssMap.forEach((properties, key) => {
-      transformationDefinitions += `${key}:not(.${ignoreResponsiveAppClass}){`
+      transformationDefinitions += `${key}:not(.${bypassScalerTransformationClassName}){`
       properties.forEach((prop: { key: string, value: string }, index: number) => {
         const isLast = index === properties.length - 1
         const isFontSizeKey = ['fontSize', 'font-size'].includes(prop.key)
