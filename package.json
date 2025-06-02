@@ -28,9 +28,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/arthursb2016/scaler"
+    "url": "https://github.com/arthursb2016/scaler-js"
   },
-  "author": "Arthur Borba <artsborba@gmail.com>",
+  "author": "Arthur Borba <arthurborba.dev>",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.26.0",
