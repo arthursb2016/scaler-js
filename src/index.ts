@@ -1,5 +1,5 @@
 import { isValidJsonString } from './utils'
-import transformPixels from './transformPixels'
+import transformCss from './transformCss'
 import { TransformPixelsOptions } from './types'
 import { transformPixelsDefault } from './options'
 
@@ -10,17 +10,17 @@ function transformExistingStyles(shouldTransformPixels: boolean, options: Transf
   Array.from(document.styleSheets).forEach((styleSheet: CSSStyleSheet) => {
     try {
       const cssRules = styleSheet.cssRules
-      Array.from(cssRules).forEach((rule) => {
-        const transformedRules = transformPixels(shouldTransformPixels, options, rule.cssText)
-        if (transformedRules) transformations += transformedRules
+      Array.from(cssRules).filter((i) => i instanceof CSSStyleRule).forEach((rule) => {
+        const transformedRules = transformCss(shouldTransformPixels, options, rule)
+        if (transformedRules) transformations += '\n' + transformedRules
       })
     } catch (error) {
-      console.warn('Scaler: Could not access stylesheet rules. Pixels transformation failed.', error)
+      console.warn('Scaler-js: Could not access a stylesheet rule. This might or might not affect your page responsiveness', error)
     }
   })
   const style = document.createElement('style')
   style.setAttribute('type', 'text/css')
-  style.setAttribute('data-app-scaler-transformations', 'true')
+  style.setAttribute('data-scaler-js-transformations', 'true')
   style.textContent = transformations.replace(/\n/g, '')
   document.head.appendChild(style)
 }
@@ -32,9 +32,17 @@ function observeNewlyAddedStyles(shouldTransformPixels: boolean, options: Transf
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName.toLowerCase() === 'style') {
             const styleEl = node as HTMLStyleElement
-            const css = styleEl.textContent ?? ''
-            const transformed = transformPixels(shouldTransformPixels, options, css)
-            styleEl.textContent = css + transformed
+            if (styleEl.sheet) {
+              let transformations = ''
+              Array.from(styleEl.sheet.cssRules).filter((i) => i instanceof CSSStyleRule).forEach((rule) => {
+                const transformedRules = transformCss(shouldTransformPixels, options, rule)
+                if (transformedRules) transformations += '\n' + transformedRules
+              });
+              if (transformations) {
+                const css = styleEl.textContent ?? ''
+                styleEl.textContent = css + transformations
+              }
+            }
           }
         })
       }
