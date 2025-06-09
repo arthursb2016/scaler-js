@@ -10,8 +10,9 @@ export default (shouldTransformPixels: boolean, options: TransformPixelsOptions,
   if (!selector) return ''
   const isExcludedSelector = options.excludeSelectors.some(i => selector.includes(i))
   const transformations = new Map()
-  Array.from(css.styleMap).forEach((prop) => {
-    const propName = prop[0].toString()
+  // @ts-ignore
+  Array.from(css.styleMap).forEach((prop: [string, Iterable<CSSStyleValue>]) => {
+    const propName = prop[0]
     const cssUnitValueArr = prop[1]
     if (cssUnitValueArr && Array.isArray(cssUnitValueArr) && cssUnitValueArr[0] instanceof CSSUnitValue) {
       const cssUnitValue = cssUnitValueArr[0]

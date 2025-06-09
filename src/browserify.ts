@@ -3,6 +3,6 @@
   * @author   Arthur Borba <https://arthurborba.dev>
   * @license  MIT
   */
-import scaler from './index'
+import scaleUI from './index'
 
-scaler('runtime')
+scaleUI('runtime')
