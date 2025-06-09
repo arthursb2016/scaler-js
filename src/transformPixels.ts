@@ -10,12 +10,13 @@ function getRemValue(value: number) {
 }
 
 function getPropertyRemValue(value: string) {
+  if (!value.includes('px')) return value
   return value.replace(/[0-9]+px/g, (match: string) => {
     return getRemValue(Number(match.replace('px', ''))) + 'rem'
   })
 }
 
-export default (options: TransformPixelsOptions, code: string) => {
+export default (shouldTransformPixels: boolean, options: TransformPixelsOptions, code: string) => {
   const cssMap = new Map()
   let match
 
@@ -24,18 +25,21 @@ export default (options: TransformPixelsOptions, code: string) => {
     const selector = match[1].trim()
     const propValue = match[2].trim()
 
-    if (!selector || options.excludeSelectors.some(i => selector.includes(i))) {
+    const isExcludedSelector = options.excludeSelectors.some(i => selector.includes(i))
+
+    if (!selector) {
       continue
     }
 
-    const pxProperties: { key: string, value: string }[] = []
+    const pxProperties: { key: string, value: string, isExcludedSelector: boolean }[] = []
     const properties = propValue.split(';')
     properties.filter(i => i).forEach((property) => {
       const arr = property.split(':')
       const key = arr[0].trim()
+      const isExcludedAttr = options.excludeAttributes.includes(key)
       const value = (arr[1] || '').trim()
-      if (value && value !== '0' && value.includes('px') && !options.excludeAttributes.includes(key)) {
-        pxProperties.push({ key, value })
+      if (value && value !== '0' && !isExcludedAttr) {
+        pxProperties.push({ key, value, isExcludedSelector })
       }
     })
 
@@ -49,13 +53,13 @@ export default (options: TransformPixelsOptions, code: string) => {
   if (cssMap.size > 0) {
     cssMap.forEach((properties, key) => {
       transformationDefinitions += `${key}:not(.${bypassScalerTransformationClassName}){`
-      properties.forEach((prop: { key: string, value: string }, index: number) => {
+      properties.forEach((prop: { key: string, value: string, isExcludedSelector: boolean }, index: number) => {
         const isLast = index === properties.length - 1
         const isFontSizeKey = ['fontSize', 'font-size'].includes(prop.key)
         let propValue
         if (isFontSizeKey) {
           propValue = `calc(${getPropertyRemValue(prop.value)} + var(${browserFontSizeDiffVarName}))`
-        } else {
+        } else if (shouldTransformPixels && prop.value.includes('px') && !prop.isExcludedSelector) {
           propValue = getPropertyRemValue(prop.value)
         }
         if (propValue) transformationDefinitions += `${prop.key}:${propValue}${isLast ? '' : ';'}`

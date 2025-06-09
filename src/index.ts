@@ -5,13 +5,13 @@ import { transformPixelsDefault } from './options'
 
 import scalerScript from './script'
 
-function transformExistingStyles(options: TransformPixelsOptions) {
+function transformExistingStyles(shouldTransformPixels: boolean, options: TransformPixelsOptions) {
   let transformations = ''
   Array.from(document.styleSheets).forEach((styleSheet: CSSStyleSheet) => {
     try {
       const cssRules = styleSheet.cssRules
       Array.from(cssRules).forEach((rule) => {
-        const transformedRules = transformPixels(options, rule.cssText)
+        const transformedRules = transformPixels(shouldTransformPixels, options, rule.cssText)
         if (transformedRules) transformations += transformedRules
       })
     } catch (error) {
@@ -25,7 +25,7 @@ function transformExistingStyles(options: TransformPixelsOptions) {
   document.head.appendChild(style)
 }
 
-function observeNewlyAddedStyles(options: TransformPixelsOptions) {
+function observeNewlyAddedStyles(shouldTransformPixels: boolean, options: TransformPixelsOptions) {
   const cssObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'childList') {
@@ -33,7 +33,7 @@ function observeNewlyAddedStyles(options: TransformPixelsOptions) {
           if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName.toLowerCase() === 'style') {
             const styleEl = node as HTMLStyleElement
             const css = styleEl.textContent ?? ''
-            const transformed = transformPixels(options, css)
+            const transformed = transformPixels(shouldTransformPixels, options, css)
             styleEl.textContent = css + transformed
           }
         })
@@ -48,11 +48,13 @@ function observeNewlyAddedStyles(options: TransformPixelsOptions) {
 
 
 export default function(transformParams?: 'runtime' | TransformPixelsOptions | boolean) {
-  function scaleApp() {
+  function scaleUI() {
     const htmlElem = document.querySelector('html')
-    const transformPixelsAttr = htmlElem?.getAttribute('data-scaler-transform-pixels')
+    const transformPixelsAttr = htmlElem?.getAttribute('data-scaler-js-transform-pixels')
     const hasRuntimeOption = transformParams === 'runtime' && transformPixelsAttr != 'false'
     const hasCustomOptions = typeof transformParams === 'object'
+
+    const shouldTransformPixels = hasRuntimeOption || hasCustomOptions || transformParams === true
 
     let transformPixelsOptions = transformPixelsDefault
     if (hasRuntimeOption && transformPixelsAttr && isValidJsonString(transformPixelsAttr)) {
@@ -61,8 +63,8 @@ export default function(transformParams?: 'runtime' | TransformPixelsOptions | b
       transformPixelsOptions = { ...transformParams }
     }
     setTimeout(() => {
-      transformExistingStyles(transformPixelsOptions)
-      observeNewlyAddedStyles(transformPixelsOptions)
+      transformExistingStyles(shouldTransformPixels, transformPixelsOptions)
+      observeNewlyAddedStyles(shouldTransformPixels, transformPixelsOptions)
     })
 
     const script = scalerScript()
@@ -73,10 +75,10 @@ export default function(transformParams?: 'runtime' | TransformPixelsOptions | b
   }
 
   if (window.document.readyState !== 'loading') {
-    scaleApp()
+    scaleUI()
   } else {
     window.document.addEventListener('DOMContentLoaded', function() {
-      scaleApp()
+      scaleUI()
     })
   }
 }

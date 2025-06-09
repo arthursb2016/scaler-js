@@ -1,4 +1,4 @@
 export type TransformPixelsOptions = {
   excludeAttributes: string[],
-  excludeSelectors: string []
+  excludeSelectors: string[]
 }
