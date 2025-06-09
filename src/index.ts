@@ -56,11 +56,13 @@ export default function(transformParams?: 'runtime' | TransformPixelsOptions | b
 
     const shouldTransformPixels = hasRuntimeOption || hasCustomOptions || transformParams === true
 
-    let transformPixelsOptions = transformPixelsDefault
+    let transformPixelsOptions
     if (hasRuntimeOption && transformPixelsAttr && isValidJsonString(transformPixelsAttr)) {
-      transformPixelsOptions = JSON.parse(transformPixelsAttr)
+      transformPixelsOptions = Object.assign(transformPixelsDefault, JSON.parse(transformPixelsAttr))
     } else if (hasCustomOptions) {
-      transformPixelsOptions = { ...transformParams }
+      transformPixelsOptions = Object.assign(transformPixelsDefault, { ...transformParams })
+    } else {
+      transformPixelsOptions = transformPixelsDefault
     }
     setTimeout(() => {
       transformExistingStyles(shouldTransformPixels, transformPixelsOptions)

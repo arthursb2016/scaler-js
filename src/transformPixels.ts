@@ -1,4 +1,4 @@
-import { TransformPixelsOptions } from './types'
+import { TransformPixelsOptions, MappedProp } from './types'
 import { htmlTagBaseFontSize, bypassScalerTransformationClassName, browserFontSizeDiffVarName } from './constants'
 
 const pxToRemRegExp = /(\d+)px/g
@@ -31,7 +31,7 @@ export default (shouldTransformPixels: boolean, options: TransformPixelsOptions,
       continue
     }
 
-    const pxProperties: { key: string, value: string, isExcludedSelector: boolean }[] = []
+    const pxProperties: MappedProp[] = []
     const properties = propValue.split(';')
     properties.filter(i => i).forEach((property) => {
       const arr = property.split(':')
@@ -39,7 +39,7 @@ export default (shouldTransformPixels: boolean, options: TransformPixelsOptions,
       const isExcludedAttr = options.excludeAttributes.includes(key)
       const value = (arr[1] || '').trim()
       if (value && value !== '0' && !isExcludedAttr) {
-        pxProperties.push({ key, value, isExcludedSelector })
+        pxProperties.push({ key, value, selector, isExcludedSelector })
       }
     })
 
@@ -52,19 +52,26 @@ export default (shouldTransformPixels: boolean, options: TransformPixelsOptions,
 
   if (cssMap.size > 0) {
     cssMap.forEach((properties, key) => {
-      transformationDefinitions += `${key}:not(.${bypassScalerTransformationClassName}){`
-      properties.forEach((prop: { key: string, value: string, isExcludedSelector: boolean }, index: number) => {
-        const isLast = index === properties.length - 1
+      const filteredProperties = properties.filter((prop: MappedProp) => {
         const isFontSizeKey = ['fontSize', 'font-size'].includes(prop.key)
-        let propValue
-        if (isFontSizeKey) {
-          propValue = `calc(${getPropertyRemValue(prop.value)} + var(${browserFontSizeDiffVarName}))`
-        } else if (shouldTransformPixels && prop.value.includes('px') && !prop.isExcludedSelector) {
-          propValue = getPropertyRemValue(prop.value)
-        }
-        if (propValue) transformationDefinitions += `${prop.key}:${propValue}${isLast ? '' : ';'}`
+        const isAllowed = shouldTransformPixels && prop.value.includes('px') && !prop.isExcludedSelector
+        return isFontSizeKey || isAllowed
       })
-      transformationDefinitions += '}'
+      if (filteredProperties.length) {
+        transformationDefinitions += `${key}:not(.${bypassScalerTransformationClassName}){`
+        filteredProperties.forEach((prop: MappedProp, index: number) => {
+          const isLast = index === filteredProperties.length - 1
+          const isFontSizeKey = ['fontSize', 'font-size'].includes(prop.key)
+          let propValue
+          if (isFontSizeKey) {
+            propValue = `calc(${getPropertyRemValue(prop.value)} + var(${browserFontSizeDiffVarName}))`
+          } else {
+            propValue = getPropertyRemValue(prop.value)
+          }
+          transformationDefinitions += `${prop.key}:${propValue}${isLast ? '' : ';'}`
+        })
+        transformationDefinitions += '}'
+      }
     })
   }
 
