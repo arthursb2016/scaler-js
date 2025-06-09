@@ -24,7 +24,7 @@ export default (options: TransformPixelsOptions, code: string) => {
     const selector = match[1].trim()
     const propValue = match[2].trim()
 
-    if (!selector || options.ignoreSelectors.some(i => selector.includes(i))) {
+    if (!selector || options.excludeSelectors.some(i => selector.includes(i))) {
       continue
     }
 
@@ -34,7 +34,7 @@ export default (options: TransformPixelsOptions, code: string) => {
       const arr = property.split(':')
       const key = arr[0].trim()
       const value = (arr[1] || '').trim()
-      if (value && value !== '0' && value.includes('px') && !options.ignoreAttributes.includes(key)) {
+      if (value && value !== '0' && value.includes('px') && !options.excludeAttributes.includes(key)) {
         pxProperties.push({ key, value })
       }
     })
@@ -52,11 +52,13 @@ export default (options: TransformPixelsOptions, code: string) => {
       properties.forEach((prop: { key: string, value: string }, index: number) => {
         const isLast = index === properties.length - 1
         const isFontSizeKey = ['fontSize', 'font-size'].includes(prop.key)
-        let propValue = getPropertyRemValue(prop.value)
+        let propValue
         if (isFontSizeKey) {
           propValue = `calc(${getPropertyRemValue(prop.value)} + var(${browserFontSizeDiffVarName}))`
+        } else {
+          propValue = getPropertyRemValue(prop.value)
         }
-        transformationDefinitions += `${prop.key}:${propValue}${isLast ? '' : ';'}`
+        if (propValue) transformationDefinitions += `${prop.key}:${propValue}${isLast ? '' : ';'}`
       })
       transformationDefinitions += '}'
     })

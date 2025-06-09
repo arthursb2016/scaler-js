@@ -25,7 +25,7 @@ function transformExistingStyles(options: TransformPixelsOptions) {
   document.head.appendChild(style)
 }
 
-function observeAddedStyles(options: TransformPixelsOptions) {
+function observeNewlyAddedStyles(options: TransformPixelsOptions) {
   const cssObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'childList') {
@@ -54,24 +54,20 @@ export default function(transformParams?: 'runtime' | TransformPixelsOptions | b
     const hasRuntimeOption = transformParams === 'runtime' && transformPixelsAttr != 'false'
     const hasCustomOptions = typeof transformParams === 'object'
 
-    const shouldTransformPixels = hasRuntimeOption || hasCustomOptions || transformParams === true
-
-    if (shouldTransformPixels) {
-      let transformPixelsOptions = transformPixelsDefault
-      if (hasRuntimeOption && transformPixelsAttr && isValidJsonString(transformPixelsAttr)) {
-        transformPixelsOptions = JSON.parse(transformPixelsAttr)
-      } else if (hasCustomOptions) {
-        transformPixelsOptions = { ...transformParams }
-      }
-      setTimeout(() => {
-        transformExistingStyles(transformPixelsOptions)
-        observeAddedStyles(transformPixelsOptions)
-      })
+    let transformPixelsOptions = transformPixelsDefault
+    if (hasRuntimeOption && transformPixelsAttr && isValidJsonString(transformPixelsAttr)) {
+      transformPixelsOptions = JSON.parse(transformPixelsAttr)
+    } else if (hasCustomOptions) {
+      transformPixelsOptions = { ...transformParams }
     }
+    setTimeout(() => {
+      transformExistingStyles(transformPixelsOptions)
+      observeNewlyAddedStyles(transformPixelsOptions)
+    })
 
     const script = scalerScript()
     const scriptTag = document.createElement('script')
-    scriptTag.setAttribute('data-app-scaler-html-font-size-watcher', 'true')
+    scriptTag.setAttribute('data-scaler-js-html-font-size-watcher', 'true')
     scriptTag.textContent = script
     document.head.appendChild(scriptTag)
   }
